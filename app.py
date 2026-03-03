@@ -484,27 +484,387 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# NON-OVERVIEW PLACEHOLDER
+# HELPER: page header
 # ══════════════════════════════════════════════════════════════════════════════
-if st.session_state.page != "Overview":
-    page_icons = dict(NAV_ITEMS)
-    icon = page_icons.get(st.session_state.page, "◈")
+def page_header(title, subtitle):
     st.markdown(f"""
-    <div style='display:flex;flex-direction:column;align-items:center;justify-content:center;
-                min-height:65vh;gap:16px;text-align:center'>
-        <div style='font-size:56px;opacity:0.15'>{icon}</div>
-        <div style='font-family:Sora,sans-serif;font-size:22px;font-weight:700;color:#fafafa'>
-            {st.session_state.page}
+    <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:18px'>
+        <div>
+            <div style='font-family:Sora,sans-serif;font-size:22px;font-weight:800;color:#fafafa'>{title}</div>
+            <div style='font-family:DM Mono,monospace;font-size:10px;color:#a1a1aa;letter-spacing:0.06em;margin-top:2px'>{subtitle}</div>
         </div>
-        <div style='font-family:DM Mono,monospace;font-size:12px;color:#a1a1aa;max-width:320px;line-height:1.8'>
-            This module is part of the full SafetyOS suite.<br>
-            Navigate to <span style='color:#818cf8'>Overview</span> for live dashboard data.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    if st.button("← Back to Overview", key="back_home"):
-        st.session_state.page = "Overview"
-        st.rerun()
+    </div>""", unsafe_allow_html=True)
+
+def card(content_html):
+    st.markdown(f"<div class='metric-card' style='margin-bottom:12px'>{content_html}</div>", unsafe_allow_html=True)
+
+def section(title):
+    st.markdown(f"<div style='font-family:Sora,sans-serif;font-size:15px;font-weight:700;color:#fafafa;margin:18px 0 10px'>{title}</div>", unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# INCIDENTS PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+if st.session_state.page == "Incidents":
+    d = st.session_state.data
+    page_header("Incident Management", "INCIDENTS · Q1 2025 · ALL SEVERITY LEVELS")
+
+    # KPIs
+    total_high = sum(d[m]["highSev"] for m in ["jan","feb","mar"])
+    total_med  = sum(d[m]["medSev"]  for m in ["jan","feb","mar"])
+    total_low  = sum(d[m]["lowSev"]  for m in ["jan","feb","mar"])
+    total_all  = total_high + total_med + total_low
+
+    k1,k2,k3,k4 = st.columns(4)
+    with k1: st.markdown(f"<div class='metric-card'><div class='metric-label'>Total Incidents Q1</div><div class='metric-value' style='color:#818cf8'>{total_all}</div></div>", unsafe_allow_html=True)
+    with k2: st.markdown(f"<div class='metric-card'><div class='metric-label'>High Severity</div><div class='metric-value' style='color:#ef4444'>{total_high}</div></div>", unsafe_allow_html=True)
+    with k3: st.markdown(f"<div class='metric-card'><div class='metric-label'>Medium Severity</div><div class='metric-value' style='color:#f59e0b'>{total_med}</div></div>", unsafe_allow_html=True)
+    with k4: st.markdown(f"<div class='metric-card'><div class='metric-label'>Low Severity</div><div class='metric-value' style='color:#22c55e'>{total_low}</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='margin:14px 0'></div>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+
+    with c1:
+        section("Monthly Incident Trend by Severity")
+        months = ["Jan","Feb","Mar"]
+        fig = go.Figure()
+        for label, key, color in [("High","highSev",C["red"]),("Medium","medSev",C["amber"]),("Low","lowSev",C["green"])]:
+            vals = [d[m][key] for m in ["jan","feb","mar"]]
+            fig.add_trace(go.Scatter(x=months, y=vals, mode="lines+markers", name=label,
+                line=dict(color=color, width=2.5), marker=dict(size=7, color=color),
+                hovertemplate=f"<b>%{{x}}</b><br>{label}: %{{y}}<extra></extra>"))
+        fig.update_layout(**base_layout(260))
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+    with c2:
+        section("Severity Distribution — Q1 Total")
+        labels = ["High", "Medium", "Low"]
+        values = [total_high, total_med, total_low]
+        colors = [C["red"], C["amber"], C["green"]]
+        fig2 = go.Figure(go.Pie(labels=labels, values=values, hole=0.55,
+            marker=dict(colors=colors, line=dict(color=C["card"], width=2)),
+            hovertemplate="<b>%{label}</b><br>Count: %{value}<br>%{percent}<extra></extra>"))
+        fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            height=260, margin=dict(l=8,r=8,t=8,b=8),
+            font=dict(family="DM Mono,monospace", color=C["muted"], size=10),
+            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color=C["muted"])))
+        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
+
+    section("Incident Log — Q1 2025")
+    inc_data = {
+        "Month":    ["Jan","Jan","Jan","Feb","Feb","Feb","Mar","Mar","Mar"],
+        "Severity": ["High","Medium","Low","High","Medium","Low","High","Medium","Low"],
+        "Count":    [d["jan"]["highSev"], d["jan"]["medSev"], d["jan"]["lowSev"],
+                     d["feb"]["highSev"], d["feb"]["medSev"], d["feb"]["lowSev"],
+                     d["mar"]["highSev"], d["mar"]["medSev"], d["mar"]["lowSev"]],
+        "Trend":    ["↓ Improving","→ Stable","↑ Growing","↓ Improving","↑ Growing","↑ Growing",
+                     "↓ Improving","→ Stable","↑ Growing"],
+        "Action Required": ["Yes","Monitor","No","Yes","Monitor","No","Review","Monitor","No"],
+    }
+    st.dataframe(pd.DataFrame(inc_data), use_container_width=True, hide_index=True)
+    st.stop()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# AUDITS PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+if st.session_state.page == "Audits":
+    d = st.session_state.data
+    page_header("Audit Management", "AUDITS · Q1 2025 · CLOSURE TRACKING")
+
+    rates = [d[m]["auditRate"] for m in ["jan","feb","mar"]]
+    avg_rate = round(sum(rates)/3)
+    trend_pct = round(((rates[2]-rates[0])/max(rates[0],1))*100)
+
+    k1,k2,k3,k4 = st.columns(4)
+    with k1: st.markdown(f"<div class='metric-card'><div class='metric-label'>Q1 Avg Closure Rate</div><div class='metric-value' style='color:#f59e0b'>{avg_rate}%</div></div>", unsafe_allow_html=True)
+    with k2: st.markdown(f"<div class='metric-card'><div class='metric-label'>Jan Rate</div><div class='metric-value' style='color:#818cf8'>{rates[0]}%</div></div>", unsafe_allow_html=True)
+    with k3: st.markdown(f"<div class='metric-card'><div class='metric-label'>Mar Rate</div><div class='metric-value' style='color:#22c55e'>{rates[2]}%</div></div>", unsafe_allow_html=True)
+    with k4:
+        c = C["green"] if trend_pct > 0 else C["red"]
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>Q1 Trend</div><div class='metric-value' style='color:{c}'>+{trend_pct}%</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='margin:14px 0'></div>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+
+    with c1:
+        section("Closure Rate Trend + Forecast")
+        months = ["Jan","Feb","Mar"]
+        preds  = forecast(rates)
+        pred_m = ["Apr","May","Jun"]
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=months, y=rates, mode="lines+markers", name="Actual",
+            line=dict(color=C["amber"], width=3), marker=dict(size=8, color=C["amber"]),
+            fill="tozeroy", fillcolor="rgba(245,158,11,0.1)",
+            hovertemplate="<b>%{x}</b><br>Rate: %{y}%<extra></extra>"))
+        fig.add_trace(go.Scatter(x=["Mar"]+pred_m, y=[rates[-1]]+preds,
+            mode="lines+markers", name="Forecast",
+            line=dict(color=C["alight"], width=2, dash="dot"),
+            marker=dict(size=5, color=C["alight"], symbol="circle-open"),
+            hovertemplate="<b>%{x}</b><br>Forecast: %{y}%<extra></extra>"))
+        fig.add_hline(y=90, line_dash="dash", line_color=C["green"], opacity=0.5,
+            annotation_text="90% Target", annotation_font_color=C["green"])
+        fig.update_layout(**base_layout(260))
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+    with c2:
+        section("Audit Categories — Simulated Breakdown")
+        cats = ["Safety Inspections","Equipment Checks","Process Reviews","Documentation","Training Audits"]
+        closed  = [18, 14, 9, 22, 11]
+        open_   = [2,  4,  3, 1,  3]
+        fig2 = go.Figure()
+        fig2.add_trace(go.Bar(x=cats, y=closed, name="Closed", marker_color=C["green"]))
+        fig2.add_trace(go.Bar(x=cats, y=open_,  name="Open",   marker_color=C["red"]))
+        fig2.update_layout(**base_layout(260, barmode="stack"))
+        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
+
+    section("Audit Schedule — Q2 2025 Forecast")
+    preds = forecast(rates)
+    sched = pd.DataFrame({
+        "Month":        ["Apr","May","Jun"],
+        "Forecast Rate":  [f"{p}%" for p in preds],
+        "Target":         ["90%","90%","90%"],
+        "Status":         ["On Track" if p>=80 else "At Risk" for p in preds],
+        "Audits Planned": [24, 26, 28],
+    })
+    st.dataframe(sched, use_container_width=True, hide_index=True)
+    st.stop()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# HAZARDS PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+if st.session_state.page == "Hazards":
+    d = st.session_state.data
+    page_header("Hazard Management", "HAZARDS · Q1 2025 · PROACTIVE vs REACTIVE")
+
+    react  = [d[m]["reactive"]  for m in ["jan","feb","mar"]]
+    proact = [d[m]["proactive"] for m in ["jan","feb","mar"]]
+    ratio_jan = round(proact[0]/max(react[0],1)*100)
+    ratio_mar = round(proact[2]/max(react[2],1)*100)
+
+    k1,k2,k3,k4 = st.columns(4)
+    with k1: st.markdown(f"<div class='metric-card'><div class='metric-label'>Total Reactive Q1</div><div class='metric-value' style='color:#ef4444'>{sum(react)}</div></div>", unsafe_allow_html=True)
+    with k2: st.markdown(f"<div class='metric-card'><div class='metric-label'>Total Proactive Q1</div><div class='metric-value' style='color:#06b6d4'>{sum(proact)}</div></div>", unsafe_allow_html=True)
+    with k3: st.markdown(f"<div class='metric-card'><div class='metric-label'>Proactivity Ratio Jan</div><div class='metric-value' style='color:#a1a1aa'>{ratio_jan}%</div></div>", unsafe_allow_html=True)
+    with k4:
+        c = C["green"] if ratio_mar > ratio_jan else C["red"]
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>Proactivity Ratio Mar</div><div class='metric-value' style='color:{c}'>{ratio_mar}%</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='margin:14px 0'></div>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+
+    with c1:
+        section("Reactive vs Proactive — Monthly Trend")
+        months = ["Jan","Feb","Mar"]
+        rp, pp = forecast(react), forecast(proact)
+        pred_m = ["Apr","May","Jun"]
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=months, y=react,  name="Reactive",  marker_color=C["red"],  opacity=0.85))
+        fig.add_trace(go.Bar(x=months, y=proact, name="Proactive", marker_color=C["cyan"], opacity=0.85))
+        fig.add_trace(go.Bar(x=pred_m, y=rp,  name="React Fcst",  marker_color="rgba(239,68,68,0.4)"))
+        fig.add_trace(go.Bar(x=pred_m, y=pp,  name="Proact Fcst", marker_color="rgba(6,182,212,0.4)"))
+        fig.update_layout(**base_layout(260, barmode="group"))
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+    with c2:
+        section("Proactivity Ratio Over Time")
+        ratios = [round(proact[i]/max(react[i],1)*100) for i in range(3)]
+        pred_ratios = forecast(ratios)
+        months = ["Jan","Feb","Mar"]
+        pred_m = ["Apr","May","Jun"]
+        fig2 = go.Figure()
+        fig2.add_trace(go.Scatter(x=months, y=ratios, mode="lines+markers", name="Ratio %",
+            line=dict(color=C["cyan"], width=3), marker=dict(size=8, color=C["cyan"]),
+            fill="tozeroy", fillcolor="rgba(6,182,212,0.1)",
+            hovertemplate="<b>%{x}</b><br>Ratio: %{y}%<extra></extra>"))
+        fig2.add_trace(go.Scatter(x=["Mar"]+pred_m, y=[ratios[-1]]+pred_ratios,
+            mode="lines+markers", name="Forecast",
+            line=dict(color=C["alight"], width=2, dash="dot"),
+            marker=dict(size=5, color=C["alight"], symbol="circle-open")))
+        fig2.add_hline(y=100, line_dash="dash", line_color=C["green"], opacity=0.5,
+            annotation_text="1:1 Parity Target", annotation_font_color=C["green"])
+        fig2.update_layout(**base_layout(260))
+        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
+
+    section("Hazard Register — Q1 2025 Summary")
+    haz_df = pd.DataFrame({
+        "Hazard Category":  ["Manual Handling","Chemical Exposure","Electrical","Working at Height","Machinery","Ergonomics"],
+        "Reactive Reports": [12, 8, 5, 9, 7, 11],
+        "Proactive IDs":    [8, 14, 9, 6, 12, 18],
+        "Risk Level":       ["Medium","High","High","High","Medium","Low"],
+        "Status":           ["In Progress","Escalated","Resolved","In Progress","Resolved","Monitoring"],
+    })
+    st.dataframe(haz_df, use_container_width=True, hide_index=True)
+    st.stop()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# REPORTS PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+if st.session_state.page == "Reports":
+    d = st.session_state.data
+    page_header("Reports & Submissions", "REPORTS · Q1 2025 · VOLUME & CULTURE TRACKING")
+
+    vols = [d[m]["volume"] for m in ["jan","feb","mar"]]
+    total = sum(vols)
+    growth = round(((vols[2]-vols[0])/max(vols[0],1))*100)
+
+    k1,k2,k3,k4 = st.columns(4)
+    with k1: st.markdown(f"<div class='metric-card'><div class='metric-label'>Total Reports Q1</div><div class='metric-value' style='color:#818cf8'>{total}</div></div>", unsafe_allow_html=True)
+    with k2: st.markdown(f"<div class='metric-card'><div class='metric-label'>Jan Volume</div><div class='metric-value' style='color:#a1a1aa'>{vols[0]}</div></div>", unsafe_allow_html=True)
+    with k3: st.markdown(f"<div class='metric-card'><div class='metric-label'>Mar Volume</div><div class='metric-value' style='color:#22c55e'>{vols[2]}</div></div>", unsafe_allow_html=True)
+    with k4:
+        c = C["green"] if growth > 0 else C["red"]
+        st.markdown(f"<div class='metric-card'><div class='metric-label'>Q1 Growth</div><div class='metric-value' style='color:{c}'>+{growth}%</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='margin:14px 0'></div>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+
+    with c1:
+        section("Reporting Volume — Trend + Forecast")
+        months = ["Jan","Feb","Mar"]
+        preds  = forecast(vols)
+        pred_m = ["Apr","May","Jun"]
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=months, y=vols, name="Actual",
+            marker_color=C["accent"], opacity=0.9,
+            hovertemplate="<b>%{x}</b><br>Reports: %{y}<extra></extra>"))
+        fig.add_trace(go.Bar(x=pred_m, y=preds, name="Forecast",
+            marker_color="rgba(99,102,241,0.4)",
+            hovertemplate="<b>%{x}</b><br>Forecast: %{y}<extra></extra>"))
+        fig.update_layout(**base_layout(260))
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+    with c2:
+        section("Report Type Breakdown — Q1 Estimate")
+        types  = ["Near Miss","Hazard ID","Incident","Unsafe Act","Unsafe Condition","Observation"]
+        counts = [38, 45, 18, 22, 29, 18]
+        fig2 = go.Figure(go.Pie(labels=types, values=counts, hole=0.5,
+            marker=dict(colors=[C["amber"],C["cyan"],C["red"],C["green"],C["alight"],"#a855f7"],
+                        line=dict(color=C["card"], width=2)),
+            hovertemplate="<b>%{label}</b><br>%{value} reports<br>%{percent}<extra></extra>"))
+        fig2.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            height=260, margin=dict(l=8,r=8,t=8,b=8),
+            font=dict(family="DM Mono,monospace", color=C["muted"], size=10),
+            legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color=C["muted"], size=9)))
+        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
+
+    section("Monthly Report Log")
+    rpt_df = pd.DataFrame({
+        "Month":       ["Jan","Jan","Feb","Feb","Mar","Mar"],
+        "Type":        ["Near Miss","Hazard ID","Near Miss","Incident","Hazard ID","Observation"],
+        "Count":       [14, 16, 18, 6, 22, 9],
+        "Dept":        ["Operations","Maintenance","Logistics","Operations","Maintenance","All"],
+        "Closed":      ["Yes","Yes","Yes","In Progress","Yes","Yes"],
+    })
+    st.dataframe(rpt_df, use_container_width=True, hide_index=True)
+    st.stop()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TRAINING PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+if st.session_state.page == "Training":
+    page_header("Training & Competency", "TRAINING · Q1 2025 · COMPLETION & COMPLIANCE")
+
+    k1,k2,k3,k4 = st.columns(4)
+    with k1: st.markdown(f"<div class='metric-card'><div class='metric-label'>Staff Trained Q1</div><div class='metric-value' style='color:#818cf8'>148</div><div class='metric-sub'>of 162 total</div></div>", unsafe_allow_html=True)
+    with k2: st.markdown(f"<div class='metric-card'><div class='metric-label'>Completion Rate</div><div class='metric-value' style='color:#22c55e'>91%</div></div>", unsafe_allow_html=True)
+    with k3: st.markdown(f"<div class='metric-card'><div class='metric-label'>Overdue Courses</div><div class='metric-value' style='color:#ef4444'>14</div></div>", unsafe_allow_html=True)
+    with k4: st.markdown(f"<div class='metric-card'><div class='metric-label'>Avg Score</div><div class='metric-value' style='color:#f59e0b'>84%</div></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='margin:14px 0'></div>", unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+
+    with c1:
+        section("Monthly Training Completions")
+        months = ["Jan","Feb","Mar"]
+        completed = [44, 52, 52]
+        target    = [50, 50, 50]
+        fig = go.Figure()
+        fig.add_trace(go.Bar(x=months, y=completed, name="Completed", marker_color=C["green"]))
+        fig.add_trace(go.Scatter(x=months, y=target, mode="lines", name="Target",
+            line=dict(color=C["red"], width=2, dash="dash")))
+        fig.update_layout(**base_layout(260))
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
+    with c2:
+        section("Completion by Course Type")
+        courses = ["Manual Handling","Fire Safety","First Aid","Chemical Handling","PPE Use","Emergency Resp."]
+        rates   = [95, 88, 72, 91, 98, 83]
+        colors  = [C["green"] if r>=90 else C["amber"] if r>=75 else C["red"] for r in rates]
+        fig2 = go.Figure(go.Bar(x=courses, y=rates, marker_color=colors,
+            hovertemplate="<b>%{x}</b><br>Completion: %{y}%<extra></extra>"))
+        fig2.add_hline(y=90, line_dash="dash", line_color=C["green"], opacity=0.5,
+            annotation_text="90% Target", annotation_font_color=C["green"])
+        fig2.update_layout(**base_layout(260))
+        st.plotly_chart(fig2, use_container_width=True, config={"displayModeBar": False})
+
+    section("Training Register — Q1 2025")
+    train_df = pd.DataFrame({
+        "Course":       ["Manual Handling","Fire Safety","First Aid","Chemical Handling","PPE Use","Emergency Response"],
+        "Required":     [55, 55, 40, 30, 55, 45],
+        "Completed":    [52, 48, 29, 27, 54, 37],
+        "Completion %": ["95%","87%","73%","90%","98%","82%"],
+        "Next Due":     ["Jul 2025","Apr 2025","Jun 2025","Jul 2025","Oct 2025","May 2025"],
+        "Status":       ["✅ On Track","⚠ At Risk","❌ Behind","✅ On Track","✅ On Track","⚠ At Risk"],
+    })
+    st.dataframe(train_df, use_container_width=True, hide_index=True)
+    st.stop()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SETTINGS PAGE
+# ══════════════════════════════════════════════════════════════════════════════
+if st.session_state.page == "Settings":
+    page_header("Settings", "CONFIGURATION · SAFETYOS DASHBOARD")
+
+    section("🔑 AI Configuration")
+    st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+    new_key = st.text_input("Anthropic API Key", value=st.session_state.api_key,
+        type="password", placeholder="sk-ant-...",
+        help="Get your key at https://console.anthropic.com")
+    if new_key != st.session_state.api_key:
+        st.session_state.api_key = new_key
+    connected = bool(st.session_state.api_key.strip())
+    if connected:
+        st.success("✅ API Key configured — all AI features are active.")
+    else:
+        st.warning("⚠️ No API key set. AI features (summary, chat, insights) require an Anthropic key.")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    section("📅 Reporting Period")
+    st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+    sc1, sc2 = st.columns(2)
+    with sc1:
+        st.selectbox("Report Period", ["Q1 2025 (Jan–Mar)", "Q2 2025 (Apr–Jun)", "Q3 2025 (Jul–Sep)", "Q4 2025 (Oct–Dec)"], index=0)
+    with sc2:
+        st.selectbox("Organisation", ["Head Office", "Site A", "Site B", "All Sites"], index=3)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    section("🎯 KPI Targets")
+    st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+    t1, t2, t3 = st.columns(3)
+    with t1: st.number_input("Audit Closure Target (%)", min_value=0, max_value=100, value=90)
+    with t2: st.number_input("Max High Severity Events", min_value=0, max_value=50, value=5)
+    with t3: st.number_input("Min Proactive Reports", min_value=0, max_value=200, value=30)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    section("🗑️ Data Management")
+    st.markdown("<div class='metric-card'>", unsafe_allow_html=True)
+    r1, r2 = st.columns(2)
+    with r1:
+        if st.button("Reset to Default Data", key="reset_data"):
+            st.session_state.data = {
+                "jan": {"volume":42,"highSev":8,"medSev":14,"lowSev":20,"auditRate":61,"reactive":38,"proactive":14},
+                "feb": {"volume":57,"highSev":6,"medSev":16,"lowSev":22,"auditRate":74,"reactive":35,"proactive":22},
+                "mar": {"volume":71,"highSev":4,"medSev":17,"lowSev":28,"auditRate":83,"reactive":30,"proactive":31},
+            }
+            st.session_state.last_ai_summary = None
+            st.session_state.chat_history = []
+            st.success("✅ Data reset to defaults.")
+            st.rerun()
+    with r2:
+        if st.button("Clear AI Chat History", key="clear_all_chat"):
+            st.session_state.chat_history = []
+            st.success("✅ Chat history cleared.")
+            st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 # ══════════════════════════════════════════════════════════════════════════════
