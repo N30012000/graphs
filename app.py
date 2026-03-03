@@ -324,9 +324,9 @@ def chart_severity():
             hovertemplate=f"<b>%{{x}}</b><br>{label}: %{{y}}<extra></extra>",
         ))
     for label, vals, color in [
-        ("High Fcst",   hp, C["red"]  + "77"),
-        ("Med Fcst",    mp, C["amber"]+ "77"),
-        ("Low Fcst",    lp, C["green"]+ "77"),
+        ("High Fcst",   hp, "rgba(239,68,68,0.45)"),
+        ("Med Fcst",    mp, "rgba(245,158,11,0.45)"),
+        ("Low Fcst",    lp, "rgba(34,197,94,0.45)"),
     ]:
         fig.add_trace(go.Bar(
             x=pred_months, y=vals, name=label, marker_color=color,
