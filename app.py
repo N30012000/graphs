@@ -13,102 +13,81 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ─── CUSTOM CSS ───────────────────────────────────────────────────────────────
+# ─── CUSTOM CSS (UPDATED FOR READABILITY) ──────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
 
-html, body, [class*="css"] { font-family: 'Sora', sans-serif; }
+/* Base Font and Background Updates */
+html, body, [class*="css"] { 
+    font-family: 'Sora', sans-serif; 
+    font-size: 16px; /* Increased from default */
+}
 
-.stApp { background-color: #09090b; color: #fafafa; }
+.stApp { 
+    background-color: #1a1a1e; /* Lighter charcoal background */
+    color: #ffffff; 
+}
 
-[data-testid="stSidebar"] { background-color: #18181b !important; border-right: 1px solid #27272a; }
+/* Sidebar adjustments */
+[data-testid="stSidebar"] { 
+    background-color: #252529 !important; 
+    border-right: 1px solid #3f3f46; 
+}
 
-#MainMenu, footer, header { visibility: hidden; }
-
+/* Metric Card Text Enhancements */
 .metric-card {
-    background: #1c1c1f; border: 1px solid #27272a;
-    border-radius: 14px; padding: 18px 22px; margin-bottom: 4px;
+    background: #27272a; /* Lighter card surface */
+    border: 1px solid #3f3f46;
+    border-radius: 14px; 
+    padding: 20px 24px; 
+    margin-bottom: 8px;
 }
 .metric-label {
-    font-family: 'DM Mono', monospace; font-size: 10px; color: #a1a1aa;
-    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;
+    font-family: 'DM Mono', monospace; 
+    font-size: 12px; /* Increased font size */
+    color: #d4d4d8; 
+    text-transform: uppercase; 
+    letter-spacing: 0.1em; 
+    margin-bottom: 8px;
 }
-.metric-value { font-family: 'Sora', sans-serif; font-size: 26px; font-weight: 800; }
-.metric-sub   { font-family: 'DM Mono', monospace; font-size: 10px; color: #a1a1aa; margin-top: 4px; }
-
-.section-hdr {
-    font-family: 'DM Mono', monospace; font-size: 10px; color: #a1a1aa;
-    text-transform: uppercase; letter-spacing: 0.12em; margin: 12px 0 6px 4px;
+.metric-value { 
+    font-family: 'Sora', sans-serif; 
+    font-size: 32px; /* Larger value display */
+    font-weight: 800; 
+}
+.metric-sub { 
+    font-family: 'DM Mono', monospace; 
+    font-size: 12px; 
+    color: #a1a1aa; 
+    margin-top: 6px; 
 }
 
+/* Navigation & Button Text */
 .nav-btn {
-    display: flex; align-items: center; gap: 10px; padding: 9px 12px;
-    border-radius: 9px; margin-bottom: 3px; cursor: pointer;
-    font-family: 'Sora', sans-serif; font-size: 13px; color: #a1a1aa;
-    border: 1px solid transparent; transition: all 0.15s;
-    text-decoration: none; width: 100%;
-}
-.nav-btn:hover { background: rgba(255,255,255,0.05); color: #fafafa; }
-.nav-btn.active {
-    background: rgba(99,102,241,0.2); border-color: rgba(99,102,241,0.3);
-    color: #fafafa; font-weight: 600;
-}
-.nav-dot {
-    width: 5px; height: 5px; border-radius: 50%;
-    background: #818cf8; margin-left: auto; flex-shrink: 0;
+    font-size: 15px; /* Increased font size */
+    padding: 12px 16px;
 }
 
 .ai-box {
-    background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(129,140,248,0.06));
-    border: 1px solid rgba(99,102,241,0.3); border-radius: 12px;
-    padding: 16px 18px; margin: 8px 0;
-    font-family: 'DM Mono', monospace; font-size: 12px;
-    color: #c7d2fe; line-height: 1.75;
-}
-.ai-box-hdr {
-    font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700;
-    color: #818cf8; margin-bottom: 8px;
+    background: rgba(99, 102, 241, 0.15);
+    border: 1px solid rgba(99, 102, 241, 0.4); 
+    font-size: 14px; /* Increased AI summary text */
+    line-height: 1.8;
 }
 
-.chat-msg {
-    border: 1px solid #27272a; border-radius: 10px;
-    padding: 12px 14px; margin-bottom: 8px;
-}
-.chat-role {
-    font-size: 10px; font-family: 'DM Mono', monospace; margin-bottom: 6px;
-}
-.chat-text {
-    color: #fafafa; font-size: 13px; font-family: 'Sora', sans-serif; line-height: 1.6;
-}
-
-.stButton > button {
-    background: linear-gradient(135deg, #6366f1, #818cf8) !important;
-    color: white !important; border: none !important; border-radius: 10px !important;
-    font-family: 'Sora', sans-serif !important; font-weight: 700 !important;
-    padding: 8px 20px !important; width: 100%;
-}
-.stButton > button:hover { opacity: 0.9 !important; }
-
+/* Input Fields */
 .stNumberInput input, .stTextInput input, .stTextArea textarea {
-    background: #09090b !important; border: 1px solid #27272a !important;
-    color: #fafafa !important; border-radius: 8px !important;
-    font-family: 'DM Mono', monospace !important;
+    font-size: 14px !important;
+    background: #1a1a1e !important;
 }
-.stTabs [data-baseweb="tab-list"] {
-    background: #18181b; border-radius: 10px; gap: 4px; padding: 4px;
-}
+
+/* Tabs */
 .stTabs [data-baseweb="tab"] {
-    background: transparent !important; color: #a1a1aa !important;
-    border-radius: 8px !important; font-family: 'Sora', sans-serif !important; font-size: 13px !important;
+    font-size: 15px !important;
 }
-.stTabs [aria-selected="true"] {
-    background: rgba(99,102,241,0.2) !important; color: #fafafa !important;
-}
-div[data-testid="stDataFrame"] { background: #1c1c1f !important; }
 </style>
 """, unsafe_allow_html=True)
-
 # ─── SESSION STATE ─────────────────────────────────────────────────────────────
 DEFAULTS = {
     "data": {
