@@ -130,7 +130,7 @@ C = {
     "card":    "#1c1c1f",
     "border":  "#27272a",
     "text":    "#fafafa",
-    "muted":   "#a1a1aa",
+    "muted":   "#475569",
     "accent":  "#6366f1",
     "alight":  "#818cf8",
     "green":   "#22c55e",
