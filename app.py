@@ -13,81 +13,100 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ─── CUSTOM CSS (UPDATED FOR READABILITY) ──────────────────────────────────────
+# ─── CUSTOM CSS (LIGHT THEME UPDATE) ──────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
 
-/* Base Font and Background Updates */
-html, body, [class*="css"] { 
-    font-family: 'Sora', sans-serif; 
-    font-size: 16px; /* Increased from default */
-}
+/* Main App Background */
+html, body, [class*="css"] { font-family: 'Sora', sans-serif; }
 
 .stApp { 
-    background-color: #1a1a1e; /* Lighter charcoal background */
-    color: #ffffff; 
+    background-color: #f8fafc; /* Light slate background */
+    color: #0f172a; /* Dark navy text for contrast */
 }
 
-/* Sidebar adjustments */
+/* Sidebar - Light Professional */
 [data-testid="stSidebar"] { 
-    background-color: #252529 !important; 
-    border-right: 1px solid #3f3f46; 
+    background-color: #ffffff !important; 
+    border-right: 1px solid #e2e8f0; 
 }
 
-/* Metric Card Text Enhancements */
+/* Metric Cards - White with Soft Shadow */
 .metric-card {
-    background: #27272a; /* Lighter card surface */
-    border: 1px solid #3f3f46;
+    background: #ffffff; 
+    border: 1px solid #e2e8f0;
     border-radius: 14px; 
-    padding: 20px 24px; 
-    margin-bottom: 8px;
+    padding: 18px 22px; 
+    margin-bottom: 12px;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 }
+
 .metric-label {
     font-family: 'DM Mono', monospace; 
-    font-size: 12px; /* Increased font size */
-    color: #d4d4d8; 
+    font-size: 11px; 
+    color: #64748b; /* Muted slate */
     text-transform: uppercase; 
-    letter-spacing: 0.1em; 
-    margin-bottom: 8px;
+    letter-spacing: 0.08em; 
+    margin-bottom: 6px;
 }
+
 .metric-value { 
     font-family: 'Sora', sans-serif; 
-    font-size: 32px; /* Larger value display */
+    font-size: 28px; 
     font-weight: 800; 
+    color: #1e293b;
 }
+
 .metric-sub { 
     font-family: 'DM Mono', monospace; 
-    font-size: 12px; 
-    color: #a1a1aa; 
-    margin-top: 6px; 
+    font-size: 11px; 
+    color: #94a3b8; 
+    margin-top: 4px; 
 }
 
-/* Navigation & Button Text */
-.nav-btn {
-    font-size: 15px; /* Increased font size */
-    padding: 12px 16px;
-}
-
+/* AI Box - Light Indigo tint */
 .ai-box {
-    background: rgba(99, 102, 241, 0.15);
-    border: 1px solid rgba(99, 102, 241, 0.4); 
-    font-size: 14px; /* Increased AI summary text */
-    line-height: 1.8;
+    background: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(129,140,248,0.04));
+    border: 1px solid rgba(99,102,241,0.2); 
+    border-radius: 12px;
+    padding: 16px 18px; 
+    color: #312e81; /* Deep indigo text */
+    font-size: 13px;
 }
 
-/* Input Fields */
+.ai-box-hdr {
+    color: #4f46e5;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+/* Navigation Buttons */
+.nav-btn {
+    color: #475569;
+    background: transparent;
+}
+.nav-btn:hover { background: #f1f5f9; color: #1e293b; }
+.nav-btn.active {
+    background: #e0e7ff; 
+    border-color: #c7d2fe;
+    color: #4338ca;
+}
+
+/* Data Input adjustments */
 .stNumberInput input, .stTextInput input, .stTextArea textarea {
-    font-size: 14px !important;
-    background: #1a1a1e !important;
+    background: #ffffff !important; 
+    border: 1px solid #cbd5e1 !important;
+    color: #1e293b !important;
 }
 
-/* Tabs */
-.stTabs [data-baseweb="tab"] {
-    font-size: 15px !important;
-}
+/* Tab Styling */
+.stTabs [data-baseweb="tab-list"] { background: #f1f5f9; }
+.stTabs [aria-selected="true"] { background: #ffffff !important; color: #4f46e5 !important; }
+
 </style>
 """, unsafe_allow_html=True)
+
 # ─── SESSION STATE ─────────────────────────────────────────────────────────────
 DEFAULTS = {
     "data": {
