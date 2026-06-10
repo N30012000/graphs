@@ -107,18 +107,57 @@ html, body, [class*="css"] { font-family: 'Sora', sans-serif; }
 </style>
 """, unsafe_allow_html=True)
 
-# ─── SESSION STATE ─────────────────────────────────────────────────────────────
+# ─── SESSION STATE (CONNECTED TO YOUR DATA) ───────────────────────────────────
+import pandas as pd
+import datetime
+
+# 1. Read your uploaded Excel/CSV datasets
+try:
+    mor_df = pd.read_csv("MOR.xlsx - Sheet1.csv", parse_dates=["DATE"])
+    hira_df = pd.read_csv("HIRA.xlsx - Sheet1.csv", parse_dates=["date of report"])
+    
+    # Example logic to aggregate data dynamically by month (Jan=1, Feb=2, Mar=3)
+    def get_monthly_metrics(month_num):
+        # Filter data for the specific month
+        monthly_hira = hira_df[hira_df['date of report'].dt.month == month_num]
+        monthly_mor = mor_df[mor_df['DATE'].dt.month == month_num]
+        
+        return {
+            "volume": len(monthly_mor) + len(monthly_hira),
+            # Map your severity columns (e.g. 'int. risk rating' from HIRA)
+            "highSev": len(monthly_hira[monthly_hira['int. risk rating'].astype(str).str.contains('high', case=False, na=False)]),
+            "medSev": len(monthly_hira[monthly_hira['int. risk rating'].astype(str).str.contains('med', case=False, na=False)]),
+            "lowSev": len(monthly_hira[monthly_hira['int. risk rating'].astype(str).str.contains('low', case=False, na=False)]),
+            # Fallbacks or calculated fields for Audits/Reactive vs Proactive
+            "auditRate": 75,  
+            "reactive": len(monthly_mor), # MORs are typically reactive
+            "proactive": len(monthly_hira) # HIRA is typically proactive
+        }
+
+    live_data = {
+        "jan": get_monthly_metrics(1),
+        "feb": get_monthly_metrics(2),
+        "mar": get_monthly_metrics(3),
+    }
+
+except Exception as e:
+    import streamlit as st
+    st.error(f"Error loading Excel data: {e}")
+    # Fallback to defaults if files aren't found
+    live_data = {
+        "jan": {"volume": 0, "highSev": 0, "medSev": 0, "lowSev": 0, "auditRate": 0, "reactive": 0, "proactive": 0},
+        "feb": {"volume": 0, "highSev": 0, "medSev": 0, "lowSev": 0, "auditRate": 0, "reactive": 0, "proactive": 0},
+        "mar": {"volume": 0, "highSev": 0, "medSev": 0, "lowSev": 0, "auditRate": 0, "reactive": 0, "proactive": 0},
+    }
+
 DEFAULTS = {
-    "data": {
-        "jan": {"volume": 42, "highSev": 8,  "medSev": 14, "lowSev": 20, "auditRate": 61, "reactive": 38, "proactive": 14},
-        "feb": {"volume": 57, "highSev": 6,  "medSev": 16, "lowSev": 22, "auditRate": 74, "reactive": 35, "proactive": 22},
-        "mar": {"volume": 71, "highSev": 4,  "medSev": 17, "lowSev": 28, "auditRate": 83, "reactive": 30, "proactive": 31},
-    },
+    "data": live_data,
     "chat_history": [],
     "last_ai_summary": None,
     "api_key": "",
     "page": "Overview",
 }
+
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
         st.session_state[k] = v
