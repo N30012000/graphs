@@ -111,44 +111,48 @@ html, body, [class*="css"] { font-family: 'Sora', sans-serif; }
 import pandas as pd
 import datetime
 
-# 1. Read your uploaded Excel/CSV datasets
-try:
-    mor_df = pd.read_csv("MOR.xlsx - Sheet1.csv", parse_dates=["DATE"])
-    hira_df = pd.read_csv("HIRA.xlsx - Sheet1.csv", parse_dates=["date of report"])
-    
-    # Example logic to aggregate data dynamically by month (Jan=1, Feb=2, Mar=3)
-    def get_monthly_metrics(month_num):
-        # Filter data for the specific month
-        monthly_hira = hira_df[hira_df['date of report'].dt.month == month_num]
-        monthly_mor = mor_df[mor_df['DATE'].dt.month == month_num]
+# 1. Create file drop-zones in the sidebar so you can upload data directly via browser
+with st.sidebar:
+    st.markdown("---")
+    st.markdown("### 📊 Upload Live Data Sheets")
+    mor_file = st.file_uploader("Upload MOR CSV", type=["csv"])
+    hira_file = st.file_uploader("Upload HIRA CSV", type=["csv"])
+
+# 2. Start with fallback default data so the app never crashes on load
+live_data = {
+    "jan": {"volume": 42, "highSev": 8,  "medSev": 14, "lowSev": 20, "auditRate": 61, "reactive": 38, "proactive": 14},
+    "feb": {"volume": 57, "highSev": 6,  "medSev": 16, "lowSev": 22, "auditRate": 74, "reactive": 35, "proactive": 22},
+    "mar": {"volume": 71, "highSev": 4,  "medSev": 17, "lowSev": 28, "auditRate": 83, "reactive": 30, "proactive": 31},
+}
+
+# 3. If files are uploaded, dynamically overwrite with your actual Excel data!
+if mor_file is not None and hira_file is not None:
+    try:
+        mor_df = pd.read_csv(mor_file, parse_dates=["DATE"])
+        hira_df = pd.read_csv(hira_file, parse_dates=["date of report"])
         
-        return {
-            "volume": len(monthly_mor) + len(monthly_hira),
-            # Map your severity columns (e.g. 'int. risk rating' from HIRA)
-            "highSev": len(monthly_hira[monthly_hira['int. risk rating'].astype(str).str.contains('high', case=False, na=False)]),
-            "medSev": len(monthly_hira[monthly_hira['int. risk rating'].astype(str).str.contains('med', case=False, na=False)]),
-            "lowSev": len(monthly_hira[monthly_hira['int. risk rating'].astype(str).str.contains('low', case=False, na=False)]),
-            # Fallbacks or calculated fields for Audits/Reactive vs Proactive
-            "auditRate": 75,  
-            "reactive": len(monthly_mor), # MORs are typically reactive
-            "proactive": len(monthly_hira) # HIRA is typically proactive
+        def get_monthly_metrics(month_num):
+            # Extract month from the dates
+            monthly_hira = hira_df[hira_df['date of report'].dt.month == month_num]
+            monthly_mor = mor_df[mor_df['DATE'].dt.month == month_num]
+            
+            return {
+                "volume": len(monthly_mor) + len(monthly_hira),
+                "highSev": len(monthly_hira[monthly_hira['int. risk rating'].astype(str).str.contains('high', case=False, na=False)]),
+                "medSev": len(monthly_hira[monthly_hira['int. risk rating'].astype(str).str.contains('med', case=False, na=False)]),
+                "lowSev": len(monthly_hira[monthly_hira['int. risk rating'].astype(str).str.contains('low', case=False, na=False)]),
+                "auditRate": 75,  
+                "reactive": len(monthly_mor), 
+                "proactive": len(monthly_hira) 
+            }
+
+        live_data = {
+            "jan": get_monthly_metrics(1),
+            "feb": get_monthly_metrics(2),
+            "mar": get_monthly_metrics(3),
         }
-
-    live_data = {
-        "jan": get_monthly_metrics(1),
-        "feb": get_monthly_metrics(2),
-        "mar": get_monthly_metrics(3),
-    }
-
-except Exception as e:
-    import streamlit as st
-    st.error(f"Error loading Excel data: {e}")
-    # Fallback to defaults if files aren't found
-    live_data = {
-        "jan": {"volume": 0, "highSev": 0, "medSev": 0, "lowSev": 0, "auditRate": 0, "reactive": 0, "proactive": 0},
-        "feb": {"volume": 0, "highSev": 0, "medSev": 0, "lowSev": 0, "auditRate": 0, "reactive": 0, "proactive": 0},
-        "mar": {"volume": 0, "highSev": 0, "medSev": 0, "lowSev": 0, "auditRate": 0, "reactive": 0, "proactive": 0},
-    }
+    except Exception as e:
+        st.sidebar.error(f"Error reading file structure: {e}")
 
 DEFAULTS = {
     "data": live_data,
