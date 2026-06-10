@@ -107,32 +107,44 @@ html, body, [class*="css"] { font-family: 'Sora', sans-serif; }
 </style>
 """, unsafe_allow_html=True)
 
-# ─── SESSION STATE (CONNECTED TO YOUR DATA) ───────────────────────────────────
+# ─── SESSION STATE (CONNECTED TO CSV & XLSX DATA) ─────────────────────────────
 import pandas as pd
 import datetime
 
-# 1. Create file drop-zones in the sidebar so you can upload data directly via browser
+# Helper function to read either CSV or Excel flexibly
+def load_file_flexible(uploaded_file):
+    if uploaded_file.name.endswith('.csv'):
+        return pd.read_csv(uploaded_file)
+    else:
+        # Handles .xlsx and .xls files
+        return pd.read_excel(uploaded_file)
+
+# 1. Create file drop-zones in the sidebar accepting both formats
 with st.sidebar:
     st.markdown("---")
     st.markdown("### 📊 Upload Live Data Sheets")
-    mor_file = st.file_uploader("Upload MOR CSV", type=["csv"])
-    hira_file = st.file_uploader("Upload HIRA CSV", type=["csv"])
+    mor_file = st.file_uploader("Upload MOR (CSV or XLSX)", type=["csv", "xlsx"])
+    hira_file = st.file_uploader("Upload HIRA (CSV or XLSX)", type=["csv", "xlsx"])
 
-# 2. Start with fallback default data so the app never crashes on load
+# 2. Fallback default data so the dashboard works before files are dragged in
 live_data = {
     "jan": {"volume": 42, "highSev": 8,  "medSev": 14, "lowSev": 20, "auditRate": 61, "reactive": 38, "proactive": 14},
     "feb": {"volume": 57, "highSev": 6,  "medSev": 16, "lowSev": 22, "auditRate": 74, "reactive": 35, "proactive": 22},
     "mar": {"volume": 71, "highSev": 4,  "medSev": 17, "lowSev": 28, "auditRate": 83, "reactive": 30, "proactive": 31},
 }
 
-# 3. If files are uploaded, dynamically overwrite with your actual Excel data!
+# 3. If both files are uploaded, process them dynamically
 if mor_file is not None and hira_file is not None:
     try:
-        mor_df = pd.read_csv(mor_file, parse_dates=["DATE"])
-        hira_df = pd.read_csv(hira_file, parse_dates=["date of report"])
+        mor_df = load_file_flexible(mor_file)
+        hira_df = load_file_flexible(hira_file)
+        
+        # Ensure date columns are explicitly forced into datetime format across both file types
+        mor_df['DATE'] = pd.to_datetime(mor_df['DATE'], errors='coerce')
+        hira_df['date of report'] = pd.to_datetime(hira_df['date of report'], errors='coerce')
         
         def get_monthly_metrics(month_num):
-            # Extract month from the dates
+            # Filter data for the specific month
             monthly_hira = hira_df[hira_df['date of report'].dt.month == month_num]
             monthly_mor = mor_df[mor_df['DATE'].dt.month == month_num]
             
@@ -152,7 +164,7 @@ if mor_file is not None and hira_file is not None:
             "mar": get_monthly_metrics(3),
         }
     except Exception as e:
-        st.sidebar.error(f"Error reading file structure: {e}")
+        st.sidebar.error(f"Error processing files: {e}")
 
 DEFAULTS = {
     "data": live_data,
@@ -165,7 +177,6 @@ DEFAULTS = {
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
         st.session_state[k] = v
-
 # ─── PALETTE ──────────────────────────────────────────────────────────────────
 C = {
     "bg":      "#09090b",
