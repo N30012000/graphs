@@ -138,13 +138,31 @@ dfs = load_data()
 bird_df = dfs["bird"]; fsr_df = dfs["fsr"]
 hira_df = dfs["hira"]; mor_df  = dfs["mor"]
 
+# Normalise all column names (strip whitespace) so lookups are consistent
+for _df in [bird_df, fsr_df, hira_df, mor_df]:
+    _df.columns = [str(c).strip() for c in _df.columns]
+
 # ─── DERIVE MONTHLY METRICS from real data ────────────────────────────────────
+def find_col(df, name):
+    """Find a column by name, tolerating leading/trailing whitespace in the header."""
+    if name in df.columns:
+        return name
+    # try stripped match
+    stripped = {str(c).strip(): c for c in df.columns}
+    return stripped.get(name.strip(), None)
+
 def monthly_counts(df, date_col, n_months=6):
-    """Return last n_months monthly counts as ordered dict {YYYY-MM: count}"""
-    col = df[date_col].copy()
-    col = pd.to_datetime(col, errors="coerce")
+    """Return last n_months monthly counts as a pd.Series keyed by Period."""
+    if df.empty:
+        return pd.Series(dtype=int)
+    actual_col = find_col(df, date_col)
+    if actual_col is None:
+        return pd.Series(dtype=int)
+    col = pd.to_datetime(df[actual_col], errors="coerce", dayfirst=True)
     df2 = df.copy(); df2["_d"] = col
     df2 = df2.dropna(subset=["_d"])
+    if df2.empty:
+        return pd.Series(dtype=int)
     df2["_m"] = df2["_d"].dt.to_period("M")
     counts = df2.groupby("_m").size().sort_index()
     return counts.tail(n_months)
@@ -185,10 +203,16 @@ bird_monthly = monthly_counts(bird_df, "DATE OF OCCURRENCE", 6)
 # severity from HIRA
 def hira_sev_monthly(rating_val, n=6):
     df = hira_df.copy()
-    df["_d"] = pd.to_datetime(df["date of report"], errors="coerce")
+    date_col = find_col(df, "date of report")
+    rating_col = find_col(df, "int. risk rating")
+    if date_col is None or rating_col is None:
+        return pd.Series(dtype=int)
+    df["_d"] = pd.to_datetime(df[date_col], errors="coerce", dayfirst=True)
     df = df.dropna(subset=["_d"])
+    if df.empty:
+        return pd.Series(dtype=int)
     df["_m"] = df["_d"].dt.to_period("M")
-    mask = df["int. risk rating"].str.lower().str.strip() == rating_val.lower()
+    mask = df[rating_col].str.lower().str.strip() == rating_val.lower()
     counts = df[mask].groupby("_m").size().sort_index()
     all_months = df.groupby("_m").size().sort_index().index
     counts = counts.reindex(all_months, fill_value=0).tail(n)
@@ -208,19 +232,19 @@ def get_client():
 def build_context():
     ctx = {}
     ctx["fsr_total"] = len(fsr_df)
-    if not fsr_df.empty and "AFFECTED FACTORS" in fsr_df.columns:
-        ctx["fsr_top_factors"] = fsr_df["AFFECTED FACTORS"].value_counts().head(6).to_dict()
+    fc = find_col(fsr_df, "AFFECTED FACTORS")
+    if fc: ctx["fsr_top_factors"] = fsr_df[fc].value_counts().head(6).to_dict()
     ctx["hira_total"] = len(hira_df)
-    if not hira_df.empty and "int. risk rating" in hira_df.columns:
-        ctx["hira_risk_ratings"] = hira_df["int. risk rating"].value_counts().to_dict()
-    if not hira_df.empty and "status" in hira_df.columns:
-        ctx["hira_status"] = hira_df["status"].value_counts().to_dict()
+    rc = find_col(hira_df, "int. risk rating")
+    sc = find_col(hira_df, "status")
+    if rc: ctx["hira_risk_ratings"] = hira_df[rc].value_counts().to_dict()
+    if sc: ctx["hira_status"] = hira_df[sc].value_counts().to_dict()
     ctx["mor_total"]  = len(mor_df)
-    if not mor_df.empty and "NATURE AND CAUSE" in mor_df.columns:
-        ctx["mor_top_causes"] = mor_df["NATURE AND CAUSE"].value_counts().head(6).to_dict()
+    nc = find_col(mor_df, "NATURE AND CAUSE")
+    if nc: ctx["mor_top_causes"] = mor_df[nc].value_counts().head(6).to_dict()
     ctx["bird_total"] = len(bird_df)
-    if not bird_df.empty and "PHASE OF FLIGHT" in bird_df.columns:
-        ctx["bird_phases"] = bird_df["PHASE OF FLIGHT"].value_counts().to_dict()
+    pc = find_col(bird_df, "PHASE OF FLIGHT")
+    if pc: ctx["bird_phases"] = bird_df[pc].value_counts().to_dict()
     ctx["fsr_monthly_last6"] = {str(k):int(v) for k,v in fsr_monthly.items()}
     return ctx
 
@@ -330,7 +354,9 @@ def chart_gauge(value):
 
 def chart_fsr_factors():
     if fsr_df.empty or "AFFECTED FACTORS" not in fsr_df.columns: return go.Figure()
-    f = fsr_df["AFFECTED FACTORS"].dropna()
+    fc = find_col(fsr_df, "AFFECTED FACTORS")
+    if not fc: return go.Figure()
+    f = fsr_df[fc].dropna()
     # normalise slightly
     f = f.str.upper().str.strip()
     counts = f.value_counts().head(10)
@@ -343,7 +369,9 @@ def chart_fsr_factors():
 
 def chart_mor_causes():
     if mor_df.empty or "NATURE AND CAUSE" not in mor_df.columns: return go.Figure()
-    c = mor_df["NATURE AND CAUSE"].dropna().value_counts().head(8)
+    nc = find_col(mor_df, "NATURE AND CAUSE")
+    if not nc: return go.Figure()
+    c = mor_df[nc].dropna().value_counts().head(8)
     labels = [str(k)[:30]+"…" if len(str(k))>30 else str(k) for k in c.index]
     fig = go.Figure(go.Bar(x=c.values, y=labels, orientation="h",
         marker=dict(color=c.values,colorscale=[[0,C["surface"]],[1,C["red"]]],line=dict(width=0)),
